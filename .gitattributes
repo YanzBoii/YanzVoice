@@ -1,0 +1,14 @@
+# Normalise les fins de ligne : LF dans le dépôt, CRLF à la sortie sous Windows.
+* text=auto
+
+*.py   text diff=python
+*.md   text
+*.txt  text
+*.json text
+*.svg  text
+
+# Binaires : jamais convertis.
+*.ico  binary
+*.png  binary
+*.zip  binary
+*.ttf  binary

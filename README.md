@@ -1,5 +1,10 @@
 # YanzVoice
 
+[![Release](https://img.shields.io/github/v/release/YanzBoii/YanzVoice?label=t%C3%A9l%C3%A9charger&style=flat-square)](https://github.com/YanzBoii/YanzVoice/releases/latest)
+[![Licence](https://img.shields.io/badge/licence-MIT-informational?style=flat-square)](LICENSE)
+[![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?style=flat-square&logo=windows&logoColor=white)](#)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=flat-square&logo=python&logoColor=white)](#)
+
 Dictée vocale pour Windows. Tu parles, ça se colle tout seul dans
 l'application active — Claude, un navigateur, Word, n'importe quoi.
 
@@ -228,3 +233,15 @@ py -m venv .venv
 .venv\Scripts\python.exe -m pip install -r requirements.txt
 .venv\Scripts\pythonw.exe main.py
 ```
+
+## Licence
+
+[MIT](LICENSE) — libre d'utilisation, de modification et de redistribution,
+à condition de conserver la mention de copyright.
+
+## Remerciements
+
+- [Groq](https://groq.com) pour l'API Whisper large-v3-turbo
+- [PyQt6](https://www.riverbankcomputing.com/software/pyqt/) pour l'interface
+- [PortAudio](http://www.portaudio.com) et
+  [libsndfile](https://libsndfile.github.io/libsndfile/) pour l'audio
