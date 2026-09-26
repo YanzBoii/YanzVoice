@@ -15,6 +15,17 @@ import time
 import zipfile
 from pathlib import Path
 
+def _use_utf8() -> None:
+    """The Windows console defaults to cp1252 and chokes on accents."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, OSError):
+            pass
+
+
+_use_utf8()
+
 ROOT = Path(__file__).resolve().parent
 DIST = ROOT / "dist"
 BUILD = ROOT / "build"
