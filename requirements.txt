@@ -1,0 +1,7 @@
+PyQt6
+sounddevice
+soundfile
+numpy
+requests
+pyperclip
+pynput

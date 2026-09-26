@@ -1,0 +1,20 @@
+# --- secrets : ne JAMAIS publier ---
+config.json
+*config*.json
+!package.json
+yanzvoice-config-*.json
+diagnostic.txt
+*.log
+
+# --- environnement local ---
+.venv/
+__pycache__/
+*.pyc
+
+# --- sorties de compilation ---
+build/
+dist/
+*.spec
+
+# --- caches ---
+assets/icons/.cache/
