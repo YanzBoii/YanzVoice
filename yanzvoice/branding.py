@@ -11,6 +11,7 @@ import ctypes
 import hashlib
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 from PyQt6.QtGui import QIcon
@@ -26,6 +27,7 @@ ROOT = paths.resource_root()
 ICON_FILE = paths.assets() / "icons" / "yanzvoice.ico"
 
 _icon: QIcon | None = None
+_stamped: Path | None = None
 
 
 def set_app_user_model_id() -> bool:
@@ -50,7 +52,7 @@ def icon() -> QIcon:
     return _icon
 
 
-def shortcut_icon() -> Path:
+def shortcut_icon(refresh: bool = False) -> Path:
     """A copy of the icon named after its own content.
 
     Explorer caches icons by file path, so replacing `yanzvoice.ico` in place
@@ -58,10 +60,21 @@ def shortcut_icon() -> Path:
     Pointing each shortcut at a content-addressed copy means a new icon always
     gets a new path, and the cache never has a stale entry to serve.
     """
+    global _stamped
     if not ICON_FILE.exists():
         return ICON_FILE
 
+    # Resolved once per run: install() asks several times, and a fresh
+    # timestamp on each call would leave earlier shortcuts pointing at a
+    # copy the cleanup below had already deleted.
+    if _stamped is not None and _stamped.exists():
+        return _stamped
+
     digest = hashlib.sha256(ICON_FILE.read_bytes()).hexdigest()[:8]
+    if refresh:
+        # Same artwork, new path: the only way to evict a cache entry that
+        # Explorer filled in while the previous file was missing.
+        digest = f"{digest}-{int(time.time()) % 100000}"
     # Beside the config, never inside the bundle: a build folder may be
     # read-only, and a onefile bundle is deleted when the app exits.
     cache = config_dir() / "icons"
@@ -80,6 +93,7 @@ def shortcut_icon() -> Path:
                 log.info("removed stale icon copy %s", old.name)
             except OSError:
                 pass
+    _stamped = stamped
     return stamped
 
 
@@ -126,7 +140,19 @@ def shortcut_targets() -> dict[str, Path]:
     return {"desktop": desktop, "start": start, "startup": startup}
 
 
-def create_shortcut(destination: Path) -> tuple[bool, str]:
+def notify_shell() -> None:
+    """Tells Explorer to re-read icons instead of serving stale ones."""
+    SHCNE_ASSOCCHANGED = 0x08000000
+    SHCNF_IDLIST = 0x0000
+    try:
+        ctypes.windll.shell32.SHChangeNotify(
+            SHCNE_ASSOCCHANGED, SHCNF_IDLIST, None, None
+        )
+    except Exception as exc:  # pragma: no cover - non-Windows
+        log.debug("SHChangeNotify unavailable: %s", exc)
+
+
+def create_shortcut(destination: Path, refresh_icon: bool = False) -> tuple[bool, str]:
     """Writes a .lnk pointing at this checkout, with the app icon and ID."""
     program, arguments, workdir = launch_target()
     script = f"""
@@ -137,7 +163,7 @@ $s = (New-Object -ComObject WScript.Shell).CreateShortcut('{destination}')
 $s.TargetPath = '{program}'
 $s.Arguments = '{arguments}'
 $s.WorkingDirectory = '{workdir}'
-$s.IconLocation = '{shortcut_icon()}'
+$s.IconLocation = '{shortcut_icon(refresh_icon)}'
 $s.Description = 'Dictée vocale — {APP_NAME}'
 $s.WindowStyle = 7
 $s.Save()
@@ -172,7 +198,7 @@ def set_run_at_startup(enabled: bool) -> bool:
     return remove_shortcut(target)
 
 
-def install(startup: bool = False) -> int:
+def install(startup: bool = False, refresh_icon: bool = False) -> int:
     """`--install`: desktop and Start menu entries, optionally at login."""
     targets = shortcut_targets()
     print(f"{APP_NAME} — installation des raccourcis\n")
@@ -180,7 +206,7 @@ def install(startup: bool = False) -> int:
     print(f"  programme    : {program}")
     if arguments:
         print(f"  arguments    : {arguments}")
-    print(f"  icône        : {shortcut_icon()}")
+    print(f"  icône        : {shortcut_icon(refresh_icon)}")
     if not ICON_FILE.exists():
         print("\n  [!] Icône introuvable — les raccourcis seront sans icône.")
     print()
@@ -188,7 +214,7 @@ def install(startup: bool = False) -> int:
     wanted = ["desktop", "start"] + (["startup"] if startup else [])
     failures = 0
     for key in wanted:
-        ok, detail = create_shortcut(targets[key])
+        ok, detail = create_shortcut(targets[key], refresh_icon)
         label = {"desktop": "Bureau", "start": "Menu Démarrer", "startup": "Démarrage"}[key]
         if ok:
             print(f"  [OK] {label:<14} {targets[key]}")
@@ -196,6 +222,7 @@ def install(startup: bool = False) -> int:
             failures += 1
             print(f"  [KO] {label:<14} {detail}")
 
+    notify_shell()
     print()
     print("Terminé." if not failures else f"{failures} raccourci(s) en échec.")
     return 1 if failures else 0

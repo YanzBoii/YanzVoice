@@ -5,6 +5,7 @@ USAGE = """YanzVoice — dictée vocale
   main.py                       lance l'application
   main.py --install             raccourcis Bureau et menu Démarrer
   main.py --install --startup   ajoute le démarrage automatique
+  main.py --install --refresh-icon  force Windows à relire l'icône
   main.py --uninstall           retire tous les raccourcis
   main.py --diagnose            teste réseau, encodage et micro
   main.py --export-config [f]   sauvegarde les réglages (clé API incluse)
@@ -33,7 +34,10 @@ def main() -> int:
     if "--install" in args:
         from yanzvoice.branding import install
 
-        return install(startup="--startup" in args)
+        return install(
+            startup="--startup" in args,
+            refresh_icon="--refresh-icon" in args,
+        )
 
     if "--uninstall" in args:
         from yanzvoice.branding import uninstall
